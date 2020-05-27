@@ -2,21 +2,28 @@
 using System.Collections;
 using System.Collections.Generic;
 using Scenes.Scripts;
+using Scenes.Scripts.Rules;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 public class World : MonoBehaviour
 {
-    private const int WORLD_SIZE = 100;
+    private const int WORLD_SIZE = 5;
 
     public WorldMap worldMap = new WorldMap(WORLD_SIZE);
+    
+    public int tooLittleNeighbours = 1;
+    public int tooMuchNeighbours = 4;
+    public int tooBeBornNeighbours = 3;
 
     public Transform cellPrefab;
 
-    public Neighbourhood neighbourhood = new VonNeumannNeighbourhood();
-    
+    public Rules rules;
+
     void Start()
     {
+        rules = new BasicRules(tooLittleNeighbours, tooMuchNeighbours, tooBeBornNeighbours);
+        
         for (var x = 0; x < WORLD_SIZE; x++)
         {
             for (var z = 0; z < WORLD_SIZE; z++)
@@ -40,11 +47,12 @@ public class World : MonoBehaviour
 
     private Cell InstantiateCell(int x, int z)
     {
-        var randomState = (Cell.State)Random.Range(0, 2);
-        
+        var randomState = (Cell.State) Random.Range(0, 2);
+
         var cellObject = Instantiate(cellPrefab, new Vector3(x, 0, z), Quaternion.identity, transform);
-        cellObject.gameObject.SetActive(Cell.State.ALIVE.Equals(randomState));
         
+        cellObject.gameObject.SetActive(Cell.State.ALIVE.Equals(randomState));
+
         return new Cell(new Coords(x, z), randomState, cellObject);
     }
 
@@ -52,29 +60,9 @@ public class World : MonoBehaviour
     {
         foreach (var cell in worldMap.GetCells())
         {
-            var numberOfNeighbours = neighbourhood.neighbours(cell, worldMap)
-                .FindAll(n => n.state == Cell.State.ALIVE)
-                .Count;
-            if (cell.state == Cell.State.ALIVE)
-            {
-                if (numberOfNeighbours < 2 || numberOfNeighbours > 3)
-                {
-                    cell.makeDead();
-                }
-            }
-            else if (cell.state == Cell.State.DEAD)
-            {
-                if (numberOfNeighbours == 3)
-                {
-                    cell.makeAlive();
-                }
-            }
+            cell.nextState = rules.CalculateNextState(cell, worldMap);
         }
 
-        foreach (var cell in worldMap.GetCells())
-        {
-            cell.proceedToNextState();
-        }
+        worldMap.GoToNextState();
     }
-    
 }

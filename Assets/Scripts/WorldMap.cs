@@ -1,13 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
-using Scenes.Scripts;
-using UnityEngine;
-
 namespace Scenes.Scripts
 {
     public class WorldMap
     {
-
         private int worldSize;
         private Cell[,] worldMap;
 
@@ -38,6 +32,14 @@ namespace Scenes.Scripts
         public Cell[,] GetCells()
         {
             return worldMap;
+        }
+
+        public void GoToNextState()
+        {
+            foreach (var cell in worldMap)
+            {
+                cell.proceedToNextState();
+            }
         }
     }
 }

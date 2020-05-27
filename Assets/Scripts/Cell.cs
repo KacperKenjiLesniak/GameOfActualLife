@@ -33,16 +33,6 @@ public class Cell
     }
     public Transform cellObject { get; set; }
 
-    public void makeDead()
-    {
-        nextState = State.DEAD;
-    }
-
-    public void makeAlive()
-    {
-        nextState = State.ALIVE;
-    }
-
     public void proceedToNextState()
     {
         state = nextState;
