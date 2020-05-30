@@ -14,7 +14,14 @@ namespace Scenes.Scripts
             {
                 for (var z = 0; z < worldSize; z++)
                 {
-                    worldMap.SetCell(InstantiateCell(new Coords(x, z), (Cell.State) Random.Range(0, 2)));
+                    if (x >= worldSize / 4 && x < 3 * worldSize / 4 && z >= worldSize / 4 && z < 3 * worldSize / 4)
+                    {
+                        worldMap.SetCell(InstantiateCell(new Coords(x, z), (Cell.State) Random.Range(0, 2)));
+                    }
+                    else
+                    {
+                        worldMap.SetCell(InstantiateCell(new Coords(x, z), Cell.State.DEAD));
+                    }
                 }
             }
 

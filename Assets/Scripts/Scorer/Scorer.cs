@@ -2,6 +2,6 @@ namespace Scenes.Scripts
 {
     public interface Scorer
     {
-        int CalculateScore(WorldMap worldMap);
+        int CalculateScore(EncodedWorld encodedWorld);
     }
 }

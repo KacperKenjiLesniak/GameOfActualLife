@@ -20,16 +20,17 @@ public class World : MonoBehaviour
     public int tooMuchNeighbours = 4;
     public int tooBeBornNeighbours = 3;
 
-    public StateVisualizer stateVisualizer;
     public WorldInitializer worldInitializer;
-    public Scorer scorer = new AliveScorer();
+    
+    public IObservable<Tuple<EncodedWorld, EncodedWorld>> endWorldStream;
 
     private DateTimeOffset lastUpdate;
     private int iteration;
-    private List<WorldScore> worldScores = new List<WorldScore>();
     private EncodedWorld initialState;
+    private Tuple<EncodedWorld, EncodedWorld> messageToBeSent;
+    private bool shouldSendMessage;
 
-    void Start()
+    void Awake()
     {
         rules = new BasicRules(tooLittleNeighbours, tooMuchNeighbours, tooBeBornNeighbours);
 
@@ -48,35 +49,43 @@ public class World : MonoBehaviour
 
         this.UpdateAsObservable()
             .Where(_ => iteration == 10)
-            .Subscribe(_ =>
+            .Subscribe(x =>
             {
+                PrepareEndWorldMessage();
                 ResetWorld();
                 InitializeRandomWorldState();
             });
+
+        endWorldStream = this.UpdateAsObservable()
+            .SkipWhile(_ => !shouldSendMessage)
+            .Select(_ =>
+            {
+                shouldSendMessage = false;
+                return messageToBeSent;
+            });
+    }
+
+    private void PrepareEndWorldMessage()
+    {
+        messageToBeSent =
+            new Tuple<EncodedWorld, EncodedWorld>(new EncodedWorld(initialState.code), new EncodedWorld(worldMap));
+        shouldSendMessage = true;
     }
 
     public void InitializeRandomWorldState()
     {
         worldMap = worldInitializer.InitializeRandomWorldState(WORLD_SIZE);
-
         initialState = new EncodedWorld(worldMap);
     }
 
     public void ResetWorld()
     {
         iteration = 0;
-
-        var score = scorer.CalculateScore(worldMap);
-        Debug.Log("Final score: " + score);
-        worldScores.Add(new WorldScore(initialState, score));
-
         foreach (var cell in worldMap.GetCells())
         {
             Destroy(cell.cellObject.gameObject);
             worldMap.SetCell(new Cell(cell.coords, Cell.State.DEAD, null));
         }
-
-        stateVisualizer.Visualize(worldScores.OrderByDescending(item => item.score).First().encodedWorld);
     }
 
     private void RefreshWorld()
@@ -85,11 +94,7 @@ public class World : MonoBehaviour
         {
             cell.nextState = rules.CalculateNextState(cell, worldMap);
         }
-
         worldMap.GoToNextState();
     }
 
-    void Update()
-    {
-    }
 }

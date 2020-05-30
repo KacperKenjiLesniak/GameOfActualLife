@@ -4,12 +4,10 @@ namespace Scenes.Scripts
 {
     public class AliveScorer : Scorer
     {
-        public int CalculateScore(WorldMap worldMap)
+        public int CalculateScore(EncodedWorld encodedWorld)
         {
-            return worldMap
-                .GetCells()
-                .Cast<Cell>()
-                .Count(c => c.state == Cell.State.ALIVE);
+            return encodedWorld.code
+                .Count(c => c == EncodedWorld.ALIVE);
         }
     }
 }

@@ -6,7 +6,15 @@ namespace Scenes.Scripts
 {
     public class EncodedWorld
     {
+        public const char ALIVE = 'o';
+        public const char DEAD = ' ';
         public string code { get; }
+
+        public EncodedWorld(string code)
+        {
+            this.code = code;
+        }
+        
         public EncodedWorld(WorldMap map)
         {
             code = EncodeMap(map);
@@ -39,9 +47,9 @@ namespace Scenes.Scripts
         {
             switch (c)
             {
-                case 'o':
+                case ALIVE:
                     return Cell.State.ALIVE;
-                case ' ':
+                case DEAD:
                     return Cell.State.DEAD;
                 default:
                     return Cell.State.DEAD;
@@ -53,9 +61,9 @@ namespace Scenes.Scripts
             switch (state)
             {
                 case Cell.State.ALIVE:
-                    return 'o';
+                    return ALIVE;
                 case Cell.State.DEAD:
-                    return ' ';
+                    return DEAD;
                 default:
                     return 'x';
             }
