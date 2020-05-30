@@ -2,7 +2,7 @@ namespace Scenes.Scripts
 {
     public class WorldMap
     {
-        private int worldSize;
+        public int worldSize { get; }
         private Cell[,] worldMap;
 
         public WorldMap(int worldSize)

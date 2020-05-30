@@ -4,8 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Scenes.Scripts;
 using Scenes.Scripts.Rules;
+using UniRx;
+using UniRx.Triggers;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 public class World : MonoBehaviour
 {
@@ -14,84 +15,68 @@ public class World : MonoBehaviour
 
     public WorldMap worldMap = new WorldMap(WORLD_SIZE);
     public Rules rules;
-    
+
     public int tooLittleNeighbours = 1;
     public int tooMuchNeighbours = 4;
     public int tooBeBornNeighbours = 3;
-    
-    public Transform cellPrefab;
+
     public StateVisualizer stateVisualizer;
-    
-    private float elapsed;
+    public WorldInitializer worldInitializer;
+    public Scorer scorer = new AliveScorer();
+
+    private DateTimeOffset lastUpdate;
     private int iteration;
     private List<WorldScore> worldScores = new List<WorldScore>();
     private EncodedWorld initialState;
-    
+
     void Start()
     {
         rules = new BasicRules(tooLittleNeighbours, tooMuchNeighbours, tooBeBornNeighbours);
 
         InitializeRandomWorldState();
+
+        this.UpdateAsObservable()
+            .Timestamp()
+            .Where(x => x.Timestamp > lastUpdate.AddSeconds(REFRESH_RATE))
+            .Subscribe(x =>
+                {
+                    iteration += 1;
+                    RefreshWorld();
+                    lastUpdate = x.Timestamp;
+                }
+            );
+
+        this.UpdateAsObservable()
+            .Where(_ => iteration == 10)
+            .Subscribe(_ =>
+            {
+                ResetWorld();
+                InitializeRandomWorldState();
+            });
     }
 
     public void InitializeRandomWorldState()
     {
-        for (var x = 0; x < WORLD_SIZE; x++)
-        {
-            for (var z = 0; z < WORLD_SIZE; z++)
-            {
-                worldMap.SetCell(InstantiateCell(new Coords(x, z), (Cell.State) Random.Range(0, 2)));
-            }
-        }
+        worldMap = worldInitializer.InitializeRandomWorldState(WORLD_SIZE);
 
         initialState = new EncodedWorld(worldMap);
     }
 
-    public void PurgeWorld()
+    public void ResetWorld()
     {
-        worldScores.Add(new WorldScore(initialState, CalculateScore(worldMap)));
         iteration = 0;
-        Debug.Log("Final score: " + CalculateScore(worldMap));
+
+        var score = scorer.CalculateScore(worldMap);
+        Debug.Log("Final score: " + score);
+        worldScores.Add(new WorldScore(initialState, score));
+
         foreach (var cell in worldMap.GetCells())
         {
             Destroy(cell.cellObject.gameObject);
-            worldMap.SetCell(InstantiateCell(cell.coords, Cell.State.DEAD));
+            worldMap.SetCell(new Cell(cell.coords, Cell.State.DEAD, null));
         }
+
         stateVisualizer.Visualize(worldScores.OrderByDescending(item => item.score).First().encodedWorld);
-    }
-
-    private int CalculateScore(WorldMap worldMap)
-    {
-        return worldMap
-            .GetCells()
-            .Cast<Cell>()
-            .Count(c => c.state == Cell.State.ALIVE);
-    }
-
-    void Update()
-    {
-        elapsed += Time.deltaTime;
-        if (elapsed >= REFRESH_RATE)
-        {
-            if (iteration == 10)
-            {
-                PurgeWorld();
-                InitializeRandomWorldState();
-            }
-            elapsed %= REFRESH_RATE;
-            iteration += 1;
-            RefreshWorld();
-        }
-
-    }
-
-    private Cell InstantiateCell(Coords coords, Cell.State state)
-    {
-        var cellObject = Instantiate(cellPrefab, new Vector3(coords.x, 0, coords.z), Quaternion.identity, transform);
-        
-        cellObject.gameObject.SetActive(Cell.State.ALIVE.Equals(state));
-
-        return new Cell(coords, state, cellObject);
     }
 
     private void RefreshWorld()
@@ -102,5 +87,9 @@ public class World : MonoBehaviour
         }
 
         worldMap.GoToNextState();
+    }
+
+    void Update()
+    {
     }
 }
