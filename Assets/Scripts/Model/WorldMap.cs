@@ -21,11 +21,11 @@ namespace Scenes.Scripts
             return new Cell(new Coords(-1, -1), null);
         }
         
-        public void SetCell(Cell cell, int x, int z)
+        public void SetCell(Cell cell)
         {
-            if (x >= 0 && x < worldSize && z >= 0 && z < worldSize)
+            if (cell.coords.x >= 0 && cell.coords.x < worldSize && cell.coords.z >= 0 && cell.coords.z < worldSize)
             {
-                worldMap[x, z] = cell;
+                worldMap[cell.coords.x, cell.coords.z] = cell;
             }
         }
 
