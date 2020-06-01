@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Scenes.Scripts;
@@ -10,35 +9,27 @@ using UnityEngine;
 
 public class World : MonoBehaviour
 {
-    private const int WORLD_SIZE = 20;
-    private const float REFRESH_RATE = 0.2f;
+    public WorldConfig config;
 
-    public WorldMap worldMap = new WorldMap(WORLD_SIZE);
-    public Rules rules;
-
-    public int tooLittleNeighbours = 1;
-    public int tooMuchNeighbours = 4;
-    public int tooBeBornNeighbours = 3;
-
-    public WorldInitializer worldInitializer;
-    
     public IObservable<Tuple<EncodedWorld, EncodedWorld>> endWorldStream;
+    private EncodedWorld initialState;
+    private int iteration;
 
     private DateTimeOffset lastUpdate;
-    private int iteration;
-    private EncodedWorld initialState;
-    private Tuple<EncodedWorld, EncodedWorld> messageToBeSent;
-    private bool shouldSendMessage;
+    private Queue<Tuple<EncodedWorld, EncodedWorld>> messagesToBeSent = new Queue<Tuple<EncodedWorld, EncodedWorld>>();
+    public Rules rules;
+    public WorldInitializer worldInitializer;
+    public WorldMap worldMap;
 
-    void Awake()
+    private void Awake()
     {
-        rules = new BasicRules(tooLittleNeighbours, tooMuchNeighbours, tooBeBornNeighbours);
+        rules = new BasicRules(config.tooLittleNeighbours, config.tooMuchNeighbours, config.tooBeBornNeighbours);
 
-        InitializeRandomWorldState();
+        InitializeWorldState();
 
         this.UpdateAsObservable()
             .Timestamp()
-            .Where(x => x.Timestamp > lastUpdate.AddSeconds(REFRESH_RATE))
+            .Where(x => x.Timestamp > lastUpdate.AddSeconds(config.refreshRate))
             .Subscribe(x =>
                 {
                     iteration += 1;
@@ -53,28 +44,24 @@ public class World : MonoBehaviour
             {
                 PrepareEndWorldMessage();
                 ResetWorld();
-                InitializeRandomWorldState();
+                InitializeWorldState();
             });
 
         endWorldStream = this.UpdateAsObservable()
-            .SkipWhile(_ => !shouldSendMessage)
-            .Select(_ =>
-            {
-                shouldSendMessage = false;
-                return messageToBeSent;
-            });
+            .Where(_ => messagesToBeSent.Any())
+            .Select(_ => messagesToBeSent.Dequeue());
     }
 
     private void PrepareEndWorldMessage()
     {
-        messageToBeSent =
-            new Tuple<EncodedWorld, EncodedWorld>(new EncodedWorld(initialState.code), new EncodedWorld(worldMap));
-        shouldSendMessage = true;
+        messagesToBeSent.Enqueue(
+            new Tuple<EncodedWorld, EncodedWorld>(new EncodedWorld(initialState.code),
+                new EncodedWorld(worldMap)));
     }
 
-    public void InitializeRandomWorldState()
+    public void InitializeWorldState()
     {
-        worldMap = worldInitializer.InitializeRandomWorldState(WORLD_SIZE);
+        worldMap = worldInitializer.GetInitialWorldState();
         initialState = new EncodedWorld(worldMap);
     }
 
@@ -90,11 +77,8 @@ public class World : MonoBehaviour
 
     private void RefreshWorld()
     {
-        foreach (var cell in worldMap.GetCells())
-        {
-            cell.nextState = rules.CalculateNextState(cell, worldMap);
-        }
+        foreach (var cell in worldMap.GetCells()) cell.nextState = rules.CalculateNextState(cell, worldMap);
+
         worldMap.GoToNextState();
     }
-
 }

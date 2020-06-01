@@ -7,7 +7,7 @@ namespace Scenes.Scripts
             this.x = x;
             this.z = z;
         }
-        
+
         public int x { get; }
         public int z { get; }
     }

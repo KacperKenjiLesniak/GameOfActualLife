@@ -1,19 +1,21 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using Scenes.Scripts;
 using UnityEngine;
 
-public class Cell 
+public class Cell
 {
-    public enum State {DEAD, ALIVE}
-    
-    public Cell( Coords coords, State state, Transform cellObject)
+    public enum State
+    {
+        DEAD,
+        ALIVE
+    }
+
+    public Cell(Coords coords, State state, Transform cellObject)
     {
         this.coords = coords;
         this.state = state;
         this.cellObject = cellObject;
-        
+
         nextState = state;
     }
 
@@ -24,13 +26,11 @@ public class Cell
     }
 
     public State state { get; set; }
-    
+
     public State nextState { get; set; }
-    
-    public Coords coords{
-        get;
-        set;
-    }
+
+    public Coords coords { get; set; }
+
     public Transform cellObject { get; set; }
 
     public void proceedToNextState()
@@ -48,5 +48,4 @@ public class Cell
                 throw new ArgumentOutOfRangeException();
         }
     }
-
 }

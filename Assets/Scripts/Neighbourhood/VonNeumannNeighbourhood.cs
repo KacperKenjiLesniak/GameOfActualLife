@@ -14,7 +14,7 @@ namespace Scenes.Scripts
                     worldMap.GetCell(coordsX - 1, coordsZ),
                     worldMap.GetCell(coordsX, coordsZ - 1),
                     worldMap.GetCell(coordsX, coordsZ + 1),
-                    worldMap.GetCell(coordsX + 1, coordsZ),
+                    worldMap.GetCell(coordsX + 1, coordsZ)
                 }
                 .FindAll(c => c.coords.x != -1);
         }
